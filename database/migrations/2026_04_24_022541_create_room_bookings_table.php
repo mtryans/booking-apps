@@ -9,17 +9,21 @@ return new class extends Migration
     {
         Schema::create('room_bookings', function (Blueprint $table) {
             $table->id();
-            // user_id tetap foreign key karena tabel users pasti ada dari Breeze
+            // user_id sebagai relasi ke tabel users (untuk requestor)
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             
-            $table->integer('room_id'); // ID dari React (Kendal = 1, Semarang = 2, dst)
+            $table->string('room_name'); // Kendal, Semarang, Nusantara, Jakarta
             $table->date('booking_date');
             $table->time('start_time');
             $table->time('end_time');
             $table->string('topic');
+            $table->string('address'); // Alamat
             $table->integer('attendant');
+            $table->text('remarks')->nullable(); 
+            $table->text('ttd')->nullable();
+            $table->string('department'); // Disimpan sebagai path gambar atau base64
             
-            // Status default saat pertama kali booking
+            // Status: waiting_approval, booked, rejected, free
             $table->string('status')->default('waiting_approval'); 
             
             $table->timestamps();

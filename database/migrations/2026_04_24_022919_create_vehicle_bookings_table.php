@@ -9,22 +9,25 @@ return new class extends Migration
     {
         Schema::create('vehicle_bookings', function (Blueprint $table) {
             $table->id();
-            // Sama seperti ruangan, diikat ke user yang login
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             
-            // ID dari React (Misal: v1 diubah jadi angka 1)
-            $table->integer('vehicle_id'); 
+            $table->string('employee_nik');
+            $table->string('vehicle_model'); // Toyota Alphard, Toyota Zenix
+            $table->string('vehicle_type'); // Jenis kendaraan
+            $table->string('plate_number'); // Plat nomor
             
-            // Jadwal Berangkat & Pulang
+            // Jadwal
             $table->date('start_date');
             $table->time('departure_time');
             $table->date('return_date');
             $table->time('return_time');
             
-            // Nama Driver (Sesuai validasi di Controller: nullable/boleh kosong)
             $table->string('driver_name')->nullable();
+            $table->text('remarks')->nullable();
+            $table->text('ttd')->nullable();
+            $table->string('department');
             
-            // Status default
+            // Status: waiting_approval, booked, rejected, free
             $table->string('status')->default('waiting_approval'); 
             
             $table->timestamps();

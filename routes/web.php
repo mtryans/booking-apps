@@ -1,38 +1,40 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\RoomBookingController;
 use App\Http\Controllers\Api\VehicleBookingController;
+use App\Http\Controllers\UserController; // Import UserController baru
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
+// --- AKSES PUBLIK (DASHBOARD) ---
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
-Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->name('dashboard');
 
+Route::get('/rooms/availability', [RoomBookingController::class, 'availability']);
+Route::get('/vehicles/availability', [VehicleBookingController::class, 'availability']);
+
+// --- AKSES TERPROTEKSI (LOGIN REQUIRED) ---
 Route::middleware('auth')->group(function () {
+    
+    // Manajemen User (Akan diproteksi khusus Administrator di dalam controllernya)
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+
+    // Ruangan
+    Route::get('/room-bookings', [RoomBookingController::class, 'index']);
+    Route::post('/room-bookings', [RoomBookingController::class, 'store']);
+    Route::patch('/room-bookings/{id}/approve', [RoomBookingController::class, 'approve']); 
+
+    // Kendaraan
+    Route::get('/vehicle-bookings', [VehicleBookingController::class, 'index']);
+    Route::post('/vehicle-bookings', [VehicleBookingController::class, 'store']);
+    Route::patch('/vehicle-bookings/{id}/approve', [VehicleBookingController::class, 'approve']); 
+
+    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-Route::middleware('auth')->group(function () {
-    // Rute Tembak Langsung (Eksplisit)
-    Route::post('/room-bookings', [RoomBookingController::class, 'store'])->name('room.booking.store');
-    Route::post('/vehicle-bookings', [VehicleBookingController::class, 'store'])->name('vehicle.booking.store');
-});
-
-require __DIR__.'/auth.php';
 
 require __DIR__.'/auth.php';
