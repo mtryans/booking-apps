@@ -21,7 +21,7 @@ WORKDIR /var/www/html
 COPY . .
 
 RUN composer install --optimize-autoloader --no-dev
-RUN npm install
+RUN npm install --legacy-peer-deps
 RUN npm run build
 
 RUN chown -R www-data:www-data /var/www/html \
