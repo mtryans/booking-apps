@@ -12,6 +12,14 @@ class RoomBooking extends Model
     // Mengizinkan semua kolom diisi, kecuali 'id'
     protected $guarded = ['id'];
 
+    // TAMBAHAN: Mengubah data array dari React menjadi format yang aman untuk database
+    protected function casts(): array
+    {
+        return [
+            'devices' => 'array',
+        ];
+    }
+
     // Relasi: Setiap booking dimiliki oleh 1 user
     public function user()
     {
