@@ -19,17 +19,21 @@ Route::get('/vehicles/availability', [VehicleBookingController::class, 'availabi
 Route::middleware('auth')->group(function () {
     
     // Manajemen User (Akan diproteksi khusus Administrator di dalam controllernya)
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::resource('users', UserController::class)->except(['create', 'show']);
 
     // Ruangan
     Route::get('/room-bookings', [RoomBookingController::class, 'index']);
     Route::post('/room-bookings', [RoomBookingController::class, 'store']);
     Route::patch('/room-bookings/{id}/approve', [RoomBookingController::class, 'approve']); 
+    Route::patch('/room-bookings/{id}', [RoomBookingController::class, 'update']);
+    Route::delete('/room-bookings/{id}', [RoomBookingController::class, 'destroy']);
 
     // Kendaraan
     Route::get('/vehicle-bookings', [VehicleBookingController::class, 'index']);
     Route::post('/vehicle-bookings', [VehicleBookingController::class, 'store']);
     Route::patch('/vehicle-bookings/{id}/approve', [VehicleBookingController::class, 'approve']); 
+    Route::patch('/vehicle-bookings/{id}', [VehicleBookingController::class, 'update']);
+    Route::delete('/vehicle-bookings/{id}', [VehicleBookingController::class, 'destroy']);
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import InteractiveFloorPlan from '@/Components/JokoUI/InteractiveFloorPlan';
 import BookingModal        from '@/Components/JokoUI/BookingModal';
 import BookingHistory      from '@/Components/JokoUI/BookingHistory';
-import AddUserModal        from '@/Components/JokoUI/AddUserModal';
 
 const T = {
     bg:'#F5F3FF', surface:'#FFFFFF', surface2:'#FAF8FF',
@@ -20,7 +19,6 @@ const T = {
 export default function Dashboard({ auth }: PageProps) {
     const [selectedAsset,    setSelectedAsset]    = useState<any|null>(null);
     const [isModalOpen,      setIsModalOpen]      = useState(false);
-    const [isUserModalOpen,  setIsUserModalOpen]  = useState(false);
     const [assetAvailability,setAssetAvailability]= useState<any[]>([]);
     const [mounted,          setMounted]          = useState(false);
 
@@ -90,13 +88,13 @@ export default function Dashboard({ auth }: PageProps) {
                         ):(
                             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                                 {auth.user.role==='administrator'&&(
-                                    <button onClick={()=>setIsUserModalOpen(true)} style={{background:'transparent',border:`1.5px solid ${T.border}`,color:T.purple,padding:'8px 16px',borderRadius:'12px',fontSize:'12px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',transition:'all .2s'}}
+                                    <Link href={route('users.index')} style={{background:'transparent',border:`1.5px solid ${T.border}`,color:T.purple,padding:'8px 16px',borderRadius:'12px',fontSize:'12px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',transition:'all .2s', textDecoration:'none'}}
                                         onMouseEnter={e=>{e.currentTarget.style.background=T.border;}}
                                         onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
                                     >
-                                        <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                                        Tambah User
-                                    </button>
+                                        <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                        Kelola User
+                                    </Link>
                                 )}
                                 <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                                     <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'linear-gradient(135deg,#7C3AED,#A855F7)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',fontWeight:800,color:'#fff',boxShadow:'0 4px 12px rgba(124,58,237,.3)'}}>
@@ -139,7 +137,7 @@ export default function Dashboard({ auth }: PageProps) {
                 {auth.user&&(
                     <section className="anim-fadeup card-hover" style={{background:T.surface,borderRadius:'24px',border:`1px solid ${T.border}`,padding:'1.75rem',boxShadow:'0 4px 24px rgba(124,58,237,.06)',animationDelay:'.1s'}}>
                         <SectionTitle>Riwayat Peminjaman</SectionTitle>
-                        <BookingHistory userRole={auth.user.role}/>
+                        <BookingHistory userRole={auth.user.role} userId={auth.user.id}/>
                     </section>
                 )}
             </div>
@@ -149,7 +147,6 @@ export default function Dashboard({ auth }: PageProps) {
                 asset={selectedAsset} onSubmit={handleBookingSubmit}
                 existingBookings={selectedAsset?(assetAvailability.find(a=>a.name===selectedAsset.name)?.bookings||[]):[]}
             />
-            <AddUserModal isOpen={isUserModalOpen} onClose={()=>setIsUserModalOpen(false)}/>
         </div>
     );
 }

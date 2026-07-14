@@ -125,4 +125,88 @@ class RoomBookingController extends Controller
         $booking->save();
         return response()->json(['message' => 'Status berhasil diperbarui!']);
     }
+
+    // Cek hak akses: pemilik booking (selama masih waiting_approval) ATAU admin/approval
+    private function canManage($booking, $user)
+    {
+        $isOwnerPending = $booking->user_id === $user->id && $booking->status === 'waiting_approval';
+        $isPrivileged = $user->isAdmin() || $user->isApproval();
+        return $isOwnerPending || $isPrivileged;
+    }
+
+    public function update(Request $request, $id)
+    {
+        $booking = RoomBooking::findOrFail($id);
+        $user = auth()->user();
+
+        if (!$this->canManage($booking, $user)) {
+            return response()->json(['message' => 'Anda tidak berhak mengubah booking ini.'], 403);
+        }
+
+        $validated = $request->validate([
+            'room_name' => 'required',
+            'department' => 'required|string',
+            'booking_date' => 'required|date',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+            'topic' => 'required',
+            'attendant' => 'required|integer',
+            'devices' => 'nullable|array',
+            'remarks' => 'nullable',
+            'ttd' => 'nullable',
+        ]);
+
+        $requestedDevices = $request->devices ?? [];
+
+        // 1. Logika Khusus Polycomp (Hanya Jakarta)
+        if (in_array('polycomp', $requestedDevices) && $request->room_name !== 'Jakarta') {
+            return response()->json(['message' => 'Perangkat Polycomp hanya tersedia untuk Jakarta Room.'], 422);
+        }
+
+        // 2. Logika Resource Locking (Shared Devices: Laptop & Camera), exclude diri sendiri
+        $sharedDevices = array_intersect(['laptop', 'camera'], $requestedDevices);
+        if (!empty($sharedDevices)) {
+            foreach ($sharedDevices as $device) {
+                $isDeviceBusy = RoomBooking::where('id', '!=', $booking->id)
+                    ->where('booking_date', $request->booking_date)
+                    ->whereIn('status', ['waiting_approval', 'booked'])
+                    ->whereJsonContains('devices', $device)
+                    ->where(function ($q) use ($request) {
+                        $q->where('start_time', '<', $request->end_time)
+                          ->where('end_time', '>', $request->start_time);
+                    })->exists();
+
+                if ($isDeviceBusy) {
+                    $namaPerangkat = ucfirst($device);
+                    return response()->json(['message' => "Maaf, perangkat $namaPerangkat sedang digunakan di ruangan lain pada jam tersebut."], 422);
+                }
+            }
+        }
+
+        // 3. Pengecekan Bentrok Ruangan Utama, exclude diri sendiri
+        $isConflict = RoomBooking::where('id', '!=', $booking->id)
+            ->where('room_name', $request->room_name)->where('booking_date', $request->booking_date)
+            ->whereIn('status', ['waiting_approval', 'booked'])
+            ->where(fn($q) => $q->where('start_time', '<', $request->end_time)->where('end_time', '>', $request->start_time))->exists();
+
+        if ($isConflict) return response()->json(['message' => 'Ruangan sudah dibooking pada jam tersebut.'], 422);
+
+        $validated['devices'] = $requestedDevices;
+        $booking->update($validated);
+
+        return response()->json(['message' => 'Booking berhasil diperbarui!']);
+    }
+
+    public function destroy($id)
+    {
+        $booking = RoomBooking::findOrFail($id);
+        $user = auth()->user();
+
+        if (!$this->canManage($booking, $user)) {
+            return response()->json(['message' => 'Anda tidak berhak menghapus booking ini.'], 403);
+        }
+
+        $booking->delete();
+        return response()->json(['message' => 'Booking berhasil dihapus.']);
+    }
 }

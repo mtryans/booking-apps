@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import BookingDetailModal from './BookingDetailModal';
+import BookingModal from './BookingModal';
 
 const T={
     surface:'#FFFFFF',surface2:'#FAF8FF',border:'#E9D5FF',borderStrong:'#C4B5FD',
@@ -12,13 +13,15 @@ const T={
     amber:'#D97706',amberBg:'#FFFBEB',amberBorder:'#FDE68A',
 };
 
-interface BookingHistoryProps{userRole?:string}
+interface BookingHistoryProps{userRole?:string;userId?:number}
 
-export default function BookingHistory({userRole='guest'}:BookingHistoryProps){
+export default function BookingHistory({userRole='guest',userId}:BookingHistoryProps){
     const [tab,setTab]=useState<'room'|'vehicle'>('room');
     const [data,setData]=useState<any[]>([]);
     const [loading,setLoading]=useState(true);
     const [selectedBooking,setSelectedBooking]=useState<any|null>(null);
+    const [editingBooking,setEditingBooking]=useState<any|null>(null);
+    const isPrivileged=userRole==='administrator'||userRole==='approval';
 
     const fetchData=async()=>{
         setLoading(true);
@@ -35,6 +38,31 @@ export default function BookingHistory({userRole='guest'}:BookingHistoryProps){
             await axios.patch(ep,{status:action});
             alert('Status berhasil diubah!');window.location.reload();
         }catch{alert('Gagal mengubah status.');}
+    };
+
+    // Boleh edit/hapus jika: pemilik booking DAN masih waiting_approval, ATAU admin/approval
+    const canManage=(item:any)=>(userId!==undefined&&item.user_id===userId&&item.status==='waiting_approval')||isPrivileged;
+
+    const handleDelete=async(id:number)=>{
+        if(!confirm('Yakin ingin menghapus pengajuan ini? Tindakan ini tidak bisa dibatalkan.'))return;
+        try{
+            const ep=tab==='room'?`/room-bookings/${id}`:`/vehicle-bookings/${id}`;
+            await axios.delete(ep);
+            alert('Berhasil dihapus!');window.location.reload();
+        }catch(err:any){alert(err.response?.data?.message||'Gagal menghapus data.');}
+    };
+
+    const handleEditSubmit=async(payload:any)=>{
+        if(!editingBooking)return;
+        try{
+            const ep=tab==='room'?`/room-bookings/${editingBooking.id}`:`/vehicle-bookings/${editingBooking.id}`;
+            const res=await axios.patch(ep,payload);
+            alert(`✅ ${res.data.message}`);
+            setEditingBooking(null);window.location.reload();
+        }catch(err:any){
+            if(err.response?.status===422)alert(`❌ DITOLAK: ${err.response.data.message}`);
+            else alert(err.response?.data?.message||'⚠️ Terjadi kesalahan.');
+        }
     };
 
     const statusStyle=(s:string)=>s==='booked'
@@ -104,6 +132,22 @@ export default function BookingHistory({userRole='guest'}:BookingHistoryProps){
                                 <span style={{fontSize:'10px',fontWeight:700,padding:'4px 12px',borderRadius:'999px',background:ss.bg,color:ss.color,border:`1px solid ${ss.border}`}}>
                                     {ss.label}
                                 </span>
+                                {canManage(item)&&(<>
+                                    <button onClick={()=>setEditingBooking(item)} title="Edit pengajuan" style={{padding:'6px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:600,background:'transparent',border:`1.5px solid ${T.border}`,color:T.purple,cursor:'pointer',transition:'all .2s',display:'flex',alignItems:'center',gap:'5px'}}
+                                        onMouseEnter={e=>{e.currentTarget.style.background='#F5F3FF';}}
+                                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                                    >
+                                        <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        Edit
+                                    </button>
+                                    <button onClick={()=>handleDelete(item.id)} title="Hapus pengajuan" style={{padding:'6px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:600,background:'transparent',border:`1.5px solid ${T.roseBorder}`,color:T.rose,cursor:'pointer',transition:'all .2s',display:'flex',alignItems:'center',gap:'5px'}}
+                                        onMouseEnter={e=>{e.currentTarget.style.background=T.roseBg;}}
+                                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                                    >
+                                        <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        Hapus
+                                    </button>
+                                </>)}
                                 <button onClick={()=>setSelectedBooking(item)} style={{padding:'6px 14px',borderRadius:'10px',fontSize:'12px',fontWeight:600,background:'transparent',border:`1.5px solid ${T.border}`,color:T.textMuted,cursor:'pointer',transition:'all .2s',display:'flex',alignItems:'center',gap:'5px'}}
                                     onMouseEnter={e=>{e.currentTarget.style.borderColor=T.purple;e.currentTarget.style.color=T.purple;e.currentTarget.style.background='#F5F3FF';}}
                                     onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.textMuted;e.currentTarget.style.background='transparent';}}
@@ -118,6 +162,16 @@ export default function BookingHistory({userRole='guest'}:BookingHistoryProps){
             </div>
 
             <BookingDetailModal isOpen={!!selectedBooking} onClose={()=>setSelectedBooking(null)} booking={selectedBooking} userRole={userRole} onAction={handleAction}/>
+
+            <BookingModal
+                isOpen={!!editingBooking}
+                onClose={()=>setEditingBooking(null)}
+                asset={editingBooking?{id:String(editingBooking.id),name:tab==='room'?editingBooking.room_name:editingBooking.vehicle_model,type:tab}:null}
+                onSubmit={handleEditSubmit}
+                mode="edit"
+                initialData={editingBooking}
+                existingBookings={[]}
+            />
         </div>
     );
 }

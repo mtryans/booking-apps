@@ -9,7 +9,8 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+    // Kita gunakan (any) agar TypeScript tidak protes soal properti 'role'
+    const user = usePage().props.auth.user as any; 
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -33,6 +34,16 @@ export default function Authenticated({
                                 >
                                     Dashboard
                                 </NavLink>
+                                
+                                {/* 🔴 MENU TAMBAHAN KHUSUS ADMINISTRATOR (VERSI DESKTOP) 🔴 */}
+                                {user.role === 'administrator' && (
+                                    <NavLink 
+                                        href={route('users.index')} 
+                                        active={route().current('users.*')}
+                                    >
+                                        Kelola User
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -137,6 +148,16 @@ export default function Authenticated({
                         >
                             Dashboard
                         </ResponsiveNavLink>
+
+                        {/* 🔴 MENU TAMBAHAN KHUSUS ADMINISTRATOR (VERSI MOBILE) 🔴 */}
+                        {user.role === 'administrator' && (
+                            <ResponsiveNavLink
+                                href={route('users.index')}
+                                active={route().current('users.*')}
+                            >
+                                Kelola User
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

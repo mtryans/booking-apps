@@ -6,6 +6,8 @@ interface BookingModalProps {
     asset: { id: string; name: string; type: 'room' | 'vehicle' } | null;
     onSubmit: (data: any) => void;
     existingBookings?: { start_time: string; end_time: string; topic?: string; driver_name?: string }[];
+    mode?: 'create' | 'edit';
+    initialData?: any | null; // data booking existing, dipakai untuk pre-fill saat mode 'edit'
 }
 
 const T = {
@@ -112,7 +114,7 @@ const inputSt=(accent:string):React.CSSProperties=>({
     transition:'border-color .2s, box-shadow .2s',
 });
 
-export default function BookingModal({isOpen,onClose,asset,onSubmit,existingBookings=[]}: BookingModalProps){
+export default function BookingModal({isOpen,onClose,asset,onSubmit,existingBookings=[],mode='create',initialData=null}: BookingModalProps){
     const [department,setDepartment]=useState('');
     const [remarks,setRemarks]=useState('');
     const [ttd,setTtd]=useState('');
@@ -137,11 +139,33 @@ export default function BookingModal({isOpen,onClose,asset,onSubmit,existingBook
             setDepartment('');setRemarks('');setTtd('');setDate('');setStartTime('');setEndTime('');
             setTopic('');setAttendant('');setNik('');setStartDate('');setReturnDate('');
             setDriverName('');setVehicleType('');setPlateNumber('');setSelectedDevices([]);
+        } else if(mode==='edit'&&initialData){
+            // Pre-fill form dari data booking yang sedang diedit
+            setDepartment(initialData.department||'');
+            setRemarks(initialData.remarks||'');
+            setTtd(initialData.ttd||'');
+            if(asset?.type==='room'){
+                setDate(initialData.booking_date||'');
+                setStartTime((initialData.start_time||'').slice(0,5));
+                setEndTime((initialData.end_time||'').slice(0,5));
+                setTopic(initialData.topic||'');
+                setAttendant(String(initialData.attendant??''));
+                setSelectedDevices(initialData.devices||[]);
+            } else {
+                setNik(initialData.employee_nik||'');
+                setStartDate(initialData.start_date||'');
+                setReturnDate(initialData.return_date||'');
+                setStartTime((initialData.departure_time||'').slice(0,5));
+                setEndTime((initialData.return_time||'').slice(0,5));
+                setDriverName(initialData.driver_name||'');
+                setVehicleType(initialData.vehicle_type||'');
+                setPlateNumber(initialData.plate_number||'');
+            }
         } else if(asset?.type==='vehicle'){
             if(asset.name.includes('Zenix')){setVehicleType('MPV');setPlateNumber;}
             if(asset.name.includes('Alphard')){setVehicleType('Luxury MPV');setPlateNumber;}
         }
-    },[isOpen,asset]);
+    },[isOpen,asset,mode,initialData]);
 
     if(!isOpen||!asset)return null;
 
@@ -178,7 +202,7 @@ export default function BookingModal({isOpen,onClose,asset,onSubmit,existingBook
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',position:'relative',zIndex:1}}>
                         <div>
                             <div style={{display:'inline-block',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',padding:'3px 12px',borderRadius:'999px',fontSize:'11px',fontWeight:600,color:'#fff',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:'8px'}}>
-                                Form {isRoom?'Ruangan':'Kendaraan'}
+                                {mode==='edit'?'Edit ':''}Form {isRoom?'Ruangan':'Kendaraan'}
                             </div>
                             <h2 style={{fontSize:'26px',fontWeight:800,color:'#fff',letterSpacing:'-0.5px'}}>{asset.name}</h2>
                         </div>
@@ -266,7 +290,7 @@ export default function BookingModal({isOpen,onClose,asset,onSubmit,existingBook
                         <button type="submit" disabled={!canSubmit} style={{padding:'10px 28px',borderRadius:'12px',border:'none',background:canSubmit?'linear-gradient(135deg,#7C3AED,#A855F7)':'#EDE9FE',color:canSubmit?'#fff':T.textMuted,fontSize:'13px',fontWeight:700,cursor:canSubmit?'pointer':'not-allowed',transition:'all .25s',boxShadow:canSubmit?'0 4px 16px rgba(124,58,237,.35)':'none',transform:'translateY(0)',letterSpacing:'.02em'}}
                             onMouseEnter={e=>{if(canSubmit)e.currentTarget.style.transform='translateY(-2px)';}}
                             onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';}}
-                        >Kirim Pengajuan</button>
+                        >{mode==='edit'?'Simpan Perubahan':'Kirim Pengajuan'}</button>
                     </div>
                 </form>
             </div>
